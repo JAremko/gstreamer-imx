@@ -225,24 +225,40 @@ static const char *frag_REORDER_prog = {
 /** AYUV to RGB conversion */
 static const char *frag_AYUV_prog = {
       "precision mediump float;"
+
       "varying vec2 opos;"
+
       "uniform sampler2D tex;"
+
       "uniform vec2 tex_scale0;"
       "uniform vec2 tex_scale1;"
       "uniform vec2 tex_scale2;"
-      "const vec3 offset = vec3(-0.0625, -0.5, -0.5);"
-      "const vec3 rcoeff = vec3(1.164, 0.000, 1.596);"
-      "const vec3 gcoeff = vec3(1.164,-0.391,-0.813);"
-      "const vec3 bcoeff = vec3(1.164, 2.018, 0.000);"
-      "void main(void) {"
+
+      "void convert( out vec4 vrgba, in vec4 vayuv ){"
+      "  const vec3 offset = vec3(-0.0625, -0.5, -0.5);"
+      "  const vec3 rcoeff = vec3(1.164, 0.000, 1.596);"
+      "  const vec3 gcoeff = vec3(1.164,-0.391,-0.813);"
+      "  const vec3 bcoeff = vec3(1.164, 2.018, 0.000);"
       "  float r,g,b;"
       "  vec3 yuv;"
-      "  yuv  = texture2D(tex,opos / tex_scale0).gba;"
+      "  yuv  = vayuv.gba;"
       "  yuv += offset;"
       "  r = dot(yuv, rcoeff);"
       "  g = dot(yuv, gcoeff);"
       "  b = dot(yuv, bcoeff);"
-      "  gl_FragColor=vec4(r,g,b,1.0);"
+      "  vrgba=vec4(r,g,b,1.0);"
+      "}"
+
+      "void main(void) {"
+      "  vec2 ps = 1. / tex_scale0;"
+      "  vec4 acc = vec4(0);"
+      "  for (int i = 0; i < conv_length; i++){"
+      "    vec2 d = vec2(i % conv_width, i / conv_width) - vec2(conv_width / 2);"
+      "    acc += conv[i] * convert(texture(tex, opos / tex_scale0 + d * ps));"
+      "  }"
+      "  vec4 converted = convert(texture(tex, opos / tex_scale0);"
+      "  vec4 saturated = convert(texture(tex, opos / tex_scale0) * 2.0;"
+      "  gl_FragColor = mix (converted, saturated, acc);"
       "}"
 };
 
